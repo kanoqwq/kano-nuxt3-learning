@@ -1,11 +1,14 @@
 <template>
-<div>
+  <div>
+    kano{{ route.params.id }}
     kano{{ $route.params.id }}
-</div>
+  </div>
 </template>
 
 <script lang="ts" setup>
-    import { ref } from "vue"
+import {ref} from "vue"
+
+const route = ueRoute()
 
 </script>
 
