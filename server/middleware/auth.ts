@@ -1,6 +1,7 @@
 import {getHeader, defineEventHandler} from "h3";
 import jwt from "jsonwebtoken";
 import {responseJSON} from "~/utils/helper";
+import {JWT_SECRET} from "~/server/private";
 
 /**
  * 1.获取token

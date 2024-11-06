@@ -5,10 +5,10 @@
  * 4 判断账户是否注册
  * 5 未注册创建账号
  */
-import {defineEventHandler, readBody} from "h3";
+import {defineEventHandler, readBody, setResponseStatus} from "h3";
 import Joi from "joi";
 import {getDB} from "~/utils/db/mysql";
-
+import {SALT} from '~/server/private'
 import md5 from 'md5'
 import {responseJSON} from "~/utils/helper";
 import {userRegisterSchema} from "~/schema/user";
@@ -19,7 +19,7 @@ export default defineEventHandler(async (event) => {
 
     //校验数据（使用Joi）
     try {
-        const value = await userRegisterSchema.validateAsync(body)
+        const value = await userRegisterSchema.validateAsync(body || {})
     } catch (error) {
         return responseJSON(1, '参数错误')
     }
@@ -40,8 +40,9 @@ export default defineEventHandler(async (event) => {
             return responseJSON(0, '注册成功')
 
         }
-    } catch (error) {
-        return responseJSON(1, '服务器错误')
+    } catch (error: any) {
+        setResponseStatus(event, 500)
+        return responseJSON(1, '服务器错误', {}, error.message)
     } finally {
         //释放链接
         connection.release()

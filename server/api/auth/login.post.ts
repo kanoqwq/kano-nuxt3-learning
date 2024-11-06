@@ -5,9 +5,9 @@
  * 4.密码正确创建token和token有效期，返回给客户端
  */
 
-import {defineEventHandler, readBody} from "h3";
+import {defineEventHandler, readBody, setResponseStatus} from "h3";
 import {getDB} from "~/utils/db/mysql";
-
+import {SALT,JWT_SECRET} from '~/server/private'
 import md5 from 'md5'
 import {ca} from "cronstrue/dist/i18n/locales/ca";
 import {responseJSON} from "~/utils/helper";
@@ -18,8 +18,9 @@ export default defineEventHandler(async (event) => {
     //获取数据
     const body = await readBody(event);
 
+
     try {
-        const value = await userLoginSchema.validateAsync(body)
+        const value = await userLoginSchema.validateAsync(body || {})
     } catch (error) {
         return responseJSON(1, '参数错误')
     }
@@ -54,8 +55,9 @@ export default defineEventHandler(async (event) => {
         } else {
             return responseJSON(1, '手机号不存在')
         }
-    } catch (error) {
-        return responseJSON(1, '服务器错误')
+    } catch (error: any) {
+        setResponseStatus(event, 500)
+        return responseJSON(1, '服务器错误', {}, error.message)
     } finally {
         //释放链接
         connection.release()
