@@ -2,7 +2,7 @@
 export default defineNuxtConfig({
     compatibilityDate: '2024-04-03',
     devtools: {enabled: false},
-    modules: ['@ant-design-vue/nuxt', '@pinia/nuxt', 'pinia-plugin-persistedstate/nuxt'],
+    modules: ['@ant-design-vue/nuxt', '@pinia/nuxt', 'pinia-plugin-persistedstate/nuxt', '@nuxt/icon'],
     antd: {
         // Options
     },

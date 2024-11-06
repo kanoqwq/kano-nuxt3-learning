@@ -8,7 +8,7 @@
 import {defineEventHandler, getQuery, setResponseStatus} from "h3";
 import {getDB} from "~/utils/db/mysql";
 import {getLoginUid, responseJSON} from "~/utils/helper";
-import {noteWithNotebookIdPagParamsSchema} from "~/schema/note";
+import {noteWithNotebookIdPagParamsSchema} from "../../../schema/server/note";
 
 export default defineEventHandler(async (event) => {
 

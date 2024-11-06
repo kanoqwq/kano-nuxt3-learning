@@ -2,16 +2,13 @@
  * 1. 判断用户是否登录
  * 2. 获取文章(分页)
  * 传入参数方式：get query
- * 参数：noteId
- *     title
- *     content_md
- *     state
+ * 参数：分页
  */
 
 import {defineEventHandler, getQuery, setResponseStatus} from "h3";
 import {getDB} from "~/utils/db/mysql";
 import {getLoginUid, responseJSON} from "~/utils/helper";
-import {notePagParamsSchema} from "~/schema/note";
+import {notePagParamsSchema} from "~/schema/server/note";
 
 export default defineEventHandler(async (event) => {
 

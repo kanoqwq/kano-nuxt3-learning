@@ -1,11 +1,6 @@
-//服务器会预处理
+//服务器会预处理,setup函数中直接使用，无需import
 export const useConter = () => useState('counter', () => 1)
-export const userInfoCookie = () => useCookie('userInfo', {
-    maxAge: 60, secure: true,
-    default() {
-        return {
-            uid: 123,
-            username: '张三'
-        }
-    }
+export const useTokenCookie = () => useCookie('accessToken', {
+    maxAge: 60 * 60 * 24 * 7,
+    secure: true
 })//秒

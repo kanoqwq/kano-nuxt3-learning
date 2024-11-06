@@ -7,22 +7,19 @@
 
 import {defineEventHandler, readBody, setResponseStatus} from "h3";
 import {getDB} from "~/utils/db/mysql";
-import {SALT,JWT_SECRET} from '~/server/private'
+import {SALT, JWT_SECRET} from '~/server/private'
 import md5 from 'md5'
-import {ca} from "cronstrue/dist/i18n/locales/ca";
 import {responseJSON} from "~/utils/helper";
-import {userLoginSchema} from "~/schema/user";
+import {userLoginSchema} from "../../../schema/server/user";
 import jwt from 'jsonwebtoken'
 
 export default defineEventHandler(async (event) => {
     //获取数据
     const body = await readBody(event);
-
-
     try {
-        const value = await userLoginSchema.validateAsync(body || {})
+        await userLoginSchema.validateAsync(body || {})
     } catch (error) {
-        return responseJSON(1, '参数错误')
+        return responseJSON(1, '请输入用户名和密码')
     }
 
     let password = md5(md5(body.password + SALT)) //md5加密
@@ -35,7 +32,7 @@ export default defineEventHandler(async (event) => {
         if ((phoneList as Array<any>).length > 0) {
             //继续查找密码
             //创建账号
-            const [passwd] = await connection.execute("select * from `users` where `password` =?", [password])
+            const [passwd] = await connection.execute("select * from `users` where `phone` =? and `password` =?", [body.phone,password])
             if ((passwd as any).length > 0) {
                 //生成TOKEN JWT
                 //密钥
@@ -43,14 +40,12 @@ export default defineEventHandler(async (event) => {
                     expiresIn: '2 days',
                     algorithm: 'HS256'
                 })
-                console.log(token)
-
-                return responseJSON(0, '登录成功',{
+                return responseJSON(0, '登录成功', {
                     accessToken: token,
-                    userInfo:{...(passwd as any)[0],password:""}
+                    userInfo: {...(passwd as any)[0], password: ""}
                 })
             } else {
-                return responseJSON(0, '密码错误')
+                return responseJSON(1, '密码错误')
             }
         } else {
             return responseJSON(1, '手机号不存在')

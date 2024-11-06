@@ -11,7 +11,7 @@ import {getDB} from "~/utils/db/mysql";
 import {SALT} from '~/server/private'
 import md5 from 'md5'
 import {responseJSON} from "~/utils/helper";
-import {userRegisterSchema} from "~/schema/user";
+import {userRegisterSchema} from "../../../schema/server/user";
 
 export default defineEventHandler(async (event) => {
     //获取数据
@@ -20,8 +20,8 @@ export default defineEventHandler(async (event) => {
     //校验数据（使用Joi）
     try {
         const value = await userRegisterSchema.validateAsync(body || {})
-    } catch (error) {
-        return responseJSON(1, '参数错误')
+    } catch (error: any) {
+        return responseJSON(1, '参数错误', {}, error)
     }
 
     let password = md5(md5(body.password + SALT)) //md5加密

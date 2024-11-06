@@ -9,7 +9,7 @@ import {defineEventHandler, readBody, setResponseStatus} from "h3";
 import {getDB} from "~/utils/db/mysql";
 
 import {getLoginUid, responseJSON} from "~/utils/helper";
-import {notebookPutSchema} from "~/schema/notebook";
+import {notebookPutSchema} from "../../../schema/server/notebook";
 
 export default defineEventHandler(async (event) => {
 

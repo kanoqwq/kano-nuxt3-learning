@@ -1,13 +1,15 @@
 /**
  * 1.判断用户是否登录
  * 2. 创建文章
+ * 传入参数方式：body
+ * 参数：notebookId
  */
 
 import {defineEventHandler, readBody, setResponseStatus} from "h3";
 import {getDB} from "~/utils/db/mysql";
 
 import {genTitle, getLoginUid, responseJSON} from "~/utils/helper";
-import {noteAddSchema} from "~/schema/note";
+import {noteAddSchema} from "../../../schema/server/note";
 
 export default defineEventHandler(async (event) => {
 

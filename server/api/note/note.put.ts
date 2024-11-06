@@ -9,7 +9,7 @@ import {defineEventHandler, readBody, setResponseStatus} from "h3";
 import {getDB} from "~/utils/db/mysql";
 
 import {genTitle, getLoginUid, responseJSON} from "~/utils/helper";
-import {notePutSchema} from "~/schema/note";
+import {notePutSchema} from "../../../schema/server/note";
 
 export default defineEventHandler(async (event) => {
 
