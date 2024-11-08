@@ -137,6 +137,7 @@ const register = async () => {
   //请求注册接口
   const {data} = await registerFetch({method: 'POST', body: formState, server: false});
   if (data) {
+    console.log(data)
     if (data.value.code === 0) {
       message.success(
           data.value.message,

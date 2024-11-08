@@ -2,7 +2,10 @@
  * 1.判断用户是否登录
  * 2. 修改文章
  * 传入参数方式：body
- * 参数：notebookId，pageSize？，pageNum？
+ * 参数： noteId
+ *     title
+ *     content_md
+ *     state
  */
 
 import {defineEventHandler, readBody, setResponseStatus} from "h3";

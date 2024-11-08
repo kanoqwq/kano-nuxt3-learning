@@ -21,7 +21,7 @@ export default defineEventHandler(async (event) => {
     const connection = await getDB().getConnection()
 
     try {
-        const [list] = await connection.execute('select * from `notebooks` where uid =?', [uid])
+        const [list] = await connection.execute('select * from `notebooks` where uid =? order by `id` desc', [uid])
         return responseJSON(0, `获取文集成功`, list)
     } catch (error: any) {
         setResponseStatus(event, 500)

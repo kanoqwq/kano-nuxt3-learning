@@ -1,4 +1,4 @@
-import {getHeader, defineEventHandler} from "h3";
+import {getHeader, defineEventHandler, setResponseStatus} from "h3";
 import jwt from "jsonwebtoken";
 import {responseJSON} from "~/utils/helper";
 import {JWT_SECRET} from "~/server/private";
@@ -21,6 +21,7 @@ export default defineEventHandler((event) => {
             //传递给上下文
             event.context.auth = {uid: res.uid}
         } catch (err) {
+            setResponseStatus(event, 401)
             return responseJSON(1, 'jwt 验证失败', {}, err as Error);
         }
     }

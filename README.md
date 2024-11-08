@@ -1,3 +1,11 @@
+## 写在前面
+
+> **真心建议通读一遍Nuxt.js的[API文档](https://nuxt.com.cn/docs/api/ "API文档")，能少走很多弯路！**
+> **真心建议通读一遍Nuxt.js的[API文档](https://nuxt.com.cn/docs/api/ "API文档")，能少走很多弯路！**
+> **真心建议通读一遍Nuxt.js的[API文档](https://nuxt.com.cn/docs/api/ "API文档")，能少走很多弯路！**
+> **真心建议通读一遍Nuxt.js的[API文档](https://nuxt.com.cn/docs/api/ "API文档")，能少走很多弯路！**
+> **真心建议通读一遍Nuxt.js的[API文档](https://nuxt.com.cn/docs/api/ "API文档")，能少走很多弯路！**
+
 ### 坑1：安装Nuxt3报错
 
 RT,安装nuxt3报错，网络错误，Clash全局TUN也无效
@@ -144,11 +152,13 @@ const [list] = await connection.execute(sqlQuery, [
 
 [You are using useFetch WRONG! (I hope you don't) - YouTube](https://www.youtube.com/watch?v=njsGVmcWviY)
 
-**经过查阅，发现这是useFetch的特性，他会将传入的参数封装为响应式变量，所以才会造成表单变化，自动**重新发送请求的问题
+**经过查阅，发现这是useFetch的特性，他可以传入响应式变量，如果响应式变量发生改变，就会重新触发请求。会造成表单变化，自动重新发送请求的问题**
 
-**所以我们只需要在页面上使用 `$fetch` 即可解决这个问题**
+**而且useFetch即使传入了一个非响应式变量，请求返回的结果也是响应式的，这对前端直接取值来说确实很不方便**
 
-**但如果实在需要useFetch，可以试试下面官方推荐的办法**
+**所以我们只需要在页面上使用 `$fetch` ，或直接传入一个非响应式变量`（JSON.parse(JSON.stringify(state))）`即可解决这个问题**
+
+**但实际上更优雅的解决方案且如果实在需要useFetch，可以试试下面官方推荐的办法**
 
 解决办法：
 
@@ -169,4 +179,66 @@ const {error,data,execute,refresh} = useFetch('xxxx/xx/',{
     watch:false
 })
 ```
+---
+### 坑6：客户端页面中间件中使用异步函数(例如navgateTo)问题
 
+我在编写中间件时想通过判断后端API返回的status来判断用户是否登录，于是写了一段这样的代码(前端useFetch请求server:true)：
+
+```javascript
+export const useHTTPFetch = (url: string, opt: FetchOptions, auth = false) => {
+    //添加请求头
+    //。。。。
+    return useFetch(url, {
+		//。。。。省略配置选项
+        onResponse({request, response, options}) {
+            // 将在 call 和 parsing body 之后调用
+            // 处理响应数据
+            if (!response._data || response._data.code !== 0) {
+                //弹出错误Toast
+                message.error(response._data.message)
+            }
+        },
+        onResponseError({request, response, options}) {
+            //fetch 发生时将被调用
+            // 处理响应错误
+            if (response.status === 401) {
+                navigateTo('/sign_in')
+            } else if (response.status === 500) {
+                message.error(response._data.message)
+            }
+        }
+    })
+}
+```
+
+这时我发现，页面不会像预期的一样跳转到登录页面
+
+**经过查阅，我发现了 `nuxtApp.callWithNuxt` 方法， 它可以调用nuxt的上下文，这样路由跳转就得以在正确的时机执行生效**
+
+> **请尽量少使用此方法，并报告导致问题的示例，以便最终在框架层面解决。**[useNuxtApp · Nuxt Composables](https://nuxt.com.cn/docs/api/composables/use-nuxt-app#runwithcontext)
+
+但我在官方文档中并没有查询到该方法，仔细查阅得知，该方法在新版的Nuxt3中变更为了`nuxtApp.runWithContext`(~~~学习速度跟不上版本迭代速度了属于是~~~)
+
+对于Nuxt的上下文解释，引用Nuxtjs官方文档的原话：
+
+> Vue.js组合式API（以及类似的Nuxt可组合函数）依赖于隐式上下文。在生命周期中，Vue将当前组件的临时实例（Nuxt的nuxtApp临时实例）设置为全局变量，并在同一时钟周期内取消设置。在服务器端渲染时，有来自不同用户和nuxtApp的多个请求在同一个全局上下文中运行。因此，Nuxt和Vue会立即取消设置此全局实例，以避免在两个用户或组件之间泄漏共享引用。
+> 这意味着，组合API和Nuxt Composables仅在生命周期内和在任何异步操作之前的同一时钟周期内可用
+
+
+
+所以实际上正确的写法是这样的：
+
+```javascript
+//... 
+async onResponseError({request, response, options}) {
+    const nuxtApp = useNuxtApp()
+    if (response.status === 401) {
+        await nuxtApp.runWithContext(() => {
+            navigateTo('/sign_in')
+        })
+    } else if (response.status === 500) {
+        message.error(response._data.message)
+    }
+}
+//...
+```

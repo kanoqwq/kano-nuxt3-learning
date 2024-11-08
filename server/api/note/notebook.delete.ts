@@ -32,7 +32,7 @@ export default defineEventHandler(async (event) => {
         if ((res as any).affectedRows <=0) {
             return responseJSON(1, `删除文集id:${body.id}失败`, {}, res as any)
         }
-        return responseJSON(0, `删除文集id:${body.id}成功`)
+        return responseJSON(0, `删除文集成功`)
     } catch (error: any) {
         setResponseStatus(event, 500)
         return responseJSON(1, '服务器错误', {}, error.message)

@@ -54,6 +54,7 @@ export default defineEventHandler(async (event) => {
         //BUG：in语句的括号内没法传入数组
         let strGen = noteIdList.map(() => '?').join()
         const sqlQuery = 'select * from `notes` where `uid`=? and `id` in (' + strGen + ') limit ? offset ?'
+        console.log(sqlQuery)
         const [list] = await connection.execute(sqlQuery, [
             uid,
             ...noteIdList,
@@ -61,8 +62,8 @@ export default defineEventHandler(async (event) => {
             offset.toString()
         ])
 
-        console.log(strGen,noteIdList)
-        return responseJSON(0, `获取文章成功`, {
+        console.log(uid,list,noteIdList)
+        return responseJSON(0, `获取文章成功1`, {
             pageNum: params.pageNum,
             total: (list as Array<any>).length,
             list: list
