@@ -75,8 +75,6 @@ export default defineEventHandler(async (event) => {
                     //释放链接
                     connection.release()
                 }
-
-                return responseJSON(0, '上传成功', {fileName, avatar: avatarUrl})
             }
         } catch (err: any) {
             return responseJSON(1, '上传到COS云端失败', {}, err)

@@ -12,6 +12,9 @@ export const notePutSchema = Joi.object({
 export const noteDeleteSchema = Joi.object({
     noteId: Joi.number().required(),
 });
+export const noteParamsSchema = Joi.object({
+    noteId: Joi.number().required(),
+});
 export const notePagParamsSchema = Joi.object({
     pageSize: Joi.string().default('10'),
     pageNum: Joi.string().default('1'),

@@ -85,7 +85,20 @@ export const loginFetch = (opt: FetchOptions) => {
 export const notebookFetch = (opt: FetchOptions) => {
     return useHTTPFetch('/api/note/notebook', opt)
 }
-//文章接口(管理员)
+//按照分类获取文章接口(管理员)
 export const notesFetch = (opt: FetchOptions) => {
     return useHTTPFetch('/api/note/notes', opt)
+}
+
+//文章接口（管理员）
+export const noteFetch = (opt: FetchOptions) => {
+    return useHTTPFetch('/api/note/note', opt)
+}
+//图片上传接口(管理员)
+export const imageFetch = (opt: FetchOptions) => {
+    return useHTTPFetch('/api/note/image', opt)
+}
+//图片上传接口-cos(管理员)
+export const imageCosFetch = (opt: FetchOptions) => {
+    return useHTTPFetch('/api/note/image-cos', opt)
 }

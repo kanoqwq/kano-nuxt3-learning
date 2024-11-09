@@ -1,12 +1,11 @@
 /**
  * 1.判断用户是否登录
- * 2. 上传头像
+ * 2. 上传图片
  * 传入参数方式：body formdata
  * 参数：-
  */
 
 import {defineEventHandler, setResponseStatus} from "h3";
-import {getDB} from "~/utils/db/mysql";
 import path from 'node:path'
 import fs from 'node:fs'
 import {getLoginUid, responseJSON} from "~/utils/helper";
@@ -42,28 +41,8 @@ export default defineEventHandler(async (event) => {
                 console.log('保存图片失败！ 错误：', error.message)
             }
         })
-
         const avatarUrl = `/uploads/${(new Date()).getFullYear()}/${fileName}`
-
-        const connection = await getDB().getConnection()
-        try {
-            //插入users
-            const [res] = await connection.execute('update `users` set `avatar` =? where `id`=?', [
-                avatarUrl,
-                uid
-            ])
-            if ((res as any).affectedRows <= 0) {
-                return responseJSON(1, `上传头像失败`)
-            }
-
-            return responseJSON(0, `上传头像成功`, {fileName, avatar: avatarUrl})
-        } catch (error: any) {
-            setResponseStatus(event, 500)
-            return responseJSON(1, '服务器错误', {body}, error.message)
-        } finally {
-            //释放链接
-            connection.release()
-        }
+        return responseJSON(0, `上传图片成功`, {fileName, imgUrl: avatarUrl})
     } else {
         return responseJSON(1, '没有选择图片', {})
     }

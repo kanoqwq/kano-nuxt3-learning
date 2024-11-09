@@ -45,9 +45,9 @@ export default defineEventHandler(async (event) => {
             uid
         ])
         if ((res as any).affectedRows <= 0) {
-            return responseJSON(1, `修改文章失败`)
+            return responseJSON(1, `文章发布失败`)
         }
-        return responseJSON(0, `修改文章成功`)
+        return responseJSON(0, `文章发布成功`)
     } catch (error: any) {
         setResponseStatus(event, 500)
         return responseJSON(1, '服务器错误', {body}, error.message)

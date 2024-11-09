@@ -56,7 +56,7 @@
     </a-col>
     <a-col :span="5" class="note-writer-list">
       <!--文章列表-->
-      <div class="create">
+      <div class="create" @click="createNote">
         <icon name="ep:circle-plus-filled" style="margin-right: 5px"></icon>
         新建文章
       </div>
@@ -89,7 +89,7 @@
                       移动文章
                     </a-row>
                   </a-menu-item>
-                  <a-menu-item>
+                  <a-menu-item @click="isShowDeleteNoteModal = true">
                     <a-row type="flex" justify="center" align="middle">
                       <icon name="ep:delete" style="margin-right: 5px"></icon>
                       删除文章
@@ -103,18 +103,22 @@
       </div>
     </a-col>
     <a-col :span="15">
-      <!--编辑-->
-      <div class="edit-note">
-        <div style="height: 80px;line-height: 80px">
-          <a-input style="font-size: 30px" :bordered="false"></a-input>
+      <a-spin tip="Loading..." :spinning="noteLoading">
+        <!--编辑-->
+        <div class="edit-note">
+          <div style="height: 80px;line-height: 80px">
+            <a-input style="font-size: 30px" :bordered="false" v-model:value="currentNoteData.title"
+                     @change="handleInput"></a-input>
+          </div>
+          <Editor
+              ref="editor"
+              :plugins="plugins"
+              v-model:value="currentNoteData.content_md"
+              @change="mdChange"
+              :uploadImages="handleUploadImages"
+          />
         </div>
-        <Editor
-            ref="editor"
-            :plugins="plugins"
-            :value="mdValue"
-            @change="mdChange"
-        />
-      </div>
+      </a-spin>
     </a-col>
 
   </a-row>
@@ -144,12 +148,14 @@
 
   <!--删除文章弹框-->
   <a-modal
+      v-model:open="isShowDeleteNoteModal"
+      @ok="deleteNote"
       width="20%"
       okText="提交"
       cancelText="取消"
   >
     <div>
-      <p style="margin-top: 30px">确认删除文章《{{ 2 }}》，文章将被移动到回收站。</p>
+      <p style="margin-top: 30px">确认删除文章《{{ currentNote && currentNote.title }}》，文章将被移动到回收站。</p>
     </div>
   </a-modal>
 </template>
@@ -162,27 +168,58 @@ import gfm from '@bytemd/plugin-gfm'
 import highlight from '@bytemd/plugin-highlight'
 //@ts-ignore
 import {Editor} from "@bytemd/vue-next";
-import {notebookFetch, notesFetch} from "~/composables/useHTTPFetch";
+import {imageCosFetch, imageFetch, notebookFetch, noteFetch, notesFetch} from "~/composables/useHTTPFetch";
+import {debounce} from '~/utils/helper/index'
 
 const plugins = [
   gfm(),
-  highlight()
+  highlight(),
+  {
+    actions: [{
+      title: '立即发布',
+      icon: '<span>立即发布</span>',
+      position: "right",
+      handler: {
+        type: 'action',
+        click(ctx: any) {
+          notePush()
+        }
+      }
+    }]
+  }
 ]
 
-//markdown传入的字符串
-const mdValue = ref('')
-const mdChange = (value: string) => {
-  mdValue.value = value
+
+const handleUploadImages = async (file: FileList) => {
+  //上传图片
+  console.log(file)
+  let formData = new FormData()
+  formData.append('file', file[0])
+  const {data}: any = await imageFetch({
+    method: 'POST',
+    body: formData
+  })
+  // const {data}: any = await imageCosFetch({
+  //   method: 'POST',
+  //   body: formData
+  // })
+
+  if (data.value.code === 0) {
+    message.success('上传图片成功！', 1)
+  }
+  console.log(data.value)
+  return [{url: data.value.data.imgUrl}]
 }
 
 /**
  * 文集相关
  */
 
-const checkDataAndRefresh = (data: any) => {
+
+const checkDataAndRefresh = (data: any, refresh: () => any, needMsg?: boolean = true) => {
   if (data.value.code === 0) {
-    message.success(data.value.message, 1)
-    refetchNotebook()
+    if (needMsg) message.success(data.value.message, 1)
+    refresh && refresh()
   }
 }
 
@@ -197,7 +234,7 @@ const showModal = () => {
 const currentNotebookIndex = ref(0)
 
 //获取文集
-const {data: notebookData, refresh: refetchNotebook}: any = await notebookFetch({
+const {data: notebookData, refresh: refreshNotebook}: any = await notebookFetch({
   method: 'get',
   server: true,
 })
@@ -206,6 +243,23 @@ if (notebookData.value) {
   if (notebookData.value.code === 1) {
     throw createError({statusCode: 500, statusMessage: notebookData.value.message})
   }
+}
+
+const refetchNotebook = async () => {
+  await refreshNotebook()
+  const data = notebookData.value.data
+  //如果删除的是最后一个文集
+  if (currentNotebookIndex.value === data.length) {
+    selectNoteBook(data[data.length - 1], data.length - 1)
+  }
+  //如果删除的是第一个文集
+  else if (currentNotebookIndex.value === data.length) {
+    selectNoteBook(data[0], 0)
+  } else {
+    // 如果删除的是中间的文集
+    selectNoteBook(data[currentNotebookIndex.value], currentNotebookIndex.value)
+  }
+
 }
 
 
@@ -225,7 +279,6 @@ if (notebookData.value.data) {
   selectedNotebookItem.value = notebookData.value.data[0]
 }
 
-
 //文集请求操作
 const handleNotebookAction = (options: { method: string, body: any }) => {
   return new Promise((resolve) => {
@@ -234,7 +287,7 @@ const handleNotebookAction = (options: { method: string, body: any }) => {
       body: options.body,
       server: false,
     }).then(({data}: any) => {
-      checkDataAndRefresh(data)
+      checkDataAndRefresh(data, refetchNotebook)
     }).finally(() => {
       resolve(true)
     })
@@ -302,58 +355,137 @@ const handleDeleteNotebook = () => {
 /**
  * 文章相关
  */
-//文章请求操作
-// const handleNotesAction = (options: { method: string, body: any }) => {
-//   return new Promise((resolve) => {
-//     notesFetch({
-//       method: options.method,
-//       body: options.body,
-//       server: false,
-//     }).then(({data}: any) => {
-//       checkDataAndRefresh(data)
-//     }).finally(() => {
-//       resolve(true)
-//     })
-//   })
-// }
-
-    //当前文章的索引
+const noteLoading = ref(true)
+//当前文章的索引
 const currentNoteIndex = ref(0)
-// watch(currentNoteIndex, () => {
-//   changeCurrentNoteIndex(0)
-// },{immediate:true})
+//当前文章（不含md）
+const currentNote = computed(() => notesData.value[currentNoteIndex.value])
+//当前选中文章的完整数据
+const currentNoteData = ref<any>({})
 
-const changeCurrentNoteIndex = (index: number) => {
-  //获取数据。。好像获取好了
-  console.log('改变index', notesData.value[index])
+//改变noteindex，获取文章内容
+let loadDebounce: any = null
+const changeCurrentNoteIndex = async (index: number) => {
+  noteLoading.value = true
   currentNoteIndex.value = index
-  mdValue.value = notesData.value[index].content_md
+  currentNoteData.value = {content_md: ''}
+  //获取具体文章数据
+  if (currentNote.value && currentNote.value.id) {
+    const {data}: any = await noteFetch({
+      method: "get",
+      server: true,
+      params: {noteId: currentNote.value.id}
+    })
+    if (data && data.value && data.value.code === 0) {
+      currentNoteData.value = data.value.data
+    }
+  }
+  clearTimeout(loadDebounce)
+  loadDebounce = setTimeout(() => {
+    noteLoading.value = false
+  }, 300)
 }
 
-//获取文集下面的文章
+//获取文集下面的文章(不含md内容)（暂时用不着分页）
 const notesData = ref<any>([])
-const getNotes = async (isServer: boolean, notebookId: number | string) => {
+const getNotes = async (isServer: boolean, notebookId: number | string, needMsg?: boolean = true) => {
   const {data}: any = await notesFetch({
     method: "get",
     server: isServer,
-    params: {notebookId}
+    params: {notebookId, pageSize: 99999999}
   })
   if (data && data.value && data.value.code === 0) {
-    message.success(data.value.message, 1)
-    console.log(data.value.data)
     notesData.value = data.value.data.list
     return data.value.data.list[0] ? data.value.data.list[0] : {}
   } else {
     return {}
   }
 }
+
+//notesData重新获取时刷新当前noteIndex位置
+watch(notesData, () => {
+  //如果删除的是最后一个文章
+  if (currentNoteIndex.value === notesData.value.length) {
+    changeCurrentNoteIndex(notesData.value.length - 1)
+  }
+  //如果删除的是第一个文章
+  else if (currentNoteIndex.value === notesData.value.length) {
+    changeCurrentNoteIndex(0)
+  } else {
+    // 如果删除的是中间的文章
+    changeCurrentNoteIndex(currentNoteIndex.value)
+  }
+})
+
 //监听文集选中，自动加载文章
 watch(selectedNotebookItem, async (item) => {
-  const firstNote = await getNotes(true, item.id)
-  //第一次进入文集显示第一个md的内容
-  mdValue.value = firstNote.content_md ? firstNote.content_md : ''
+  await getNotes(true, item.id)
 }, {immediate: true})
 
+
+//文章请求需要用到当前notebook的id
+const currentNotebookId = computed(() => notebookData.value.data[currentNotebookIndex.value].id)
+
+//文章请求操作
+const handleNoteAction = (options: { method: string, body?: any, params?: any }, needMsg?: boolean = true) => {
+  return new Promise((resolve) => {
+    noteFetch({
+      method: options.method,
+      body: options.body || {},
+      params: options.params || {},
+      server: false,
+    }).then(({data}: any) => {
+      checkDataAndRefresh(data, () => getNotes(true, currentNotebookId.value), needMsg)
+    }).finally(() => {
+      resolve(true)
+    })
+  })
+}
+
+//新建文章
+const createNote = async () => {
+  //新建文章
+  await handleNoteAction({method: 'post', body: {notebookId: currentNotebookId.value}})
+  //选中到新建的文章
+  await changeCurrentNoteIndex(0)
+}
+
+//发布文章
+const notePush = async (state?: number, needMsg?: boolean = true) => {
+  if (currentNoteData.value.title && currentNoteData.value.content_md) {
+    await handleNoteAction({
+      method: 'put', body: {
+        noteId: currentNoteData.value.id,
+        title: currentNoteData.value.title,
+        content_md: currentNoteData.value.content_md,
+        state: state ? state : currentNoteData.value.state,
+      }
+    }, needMsg)
+  }
+}
+
+//标题改变时自动保存
+const handleInput = debounce(() => notePush.bind(null, 1, false), 1000)
+
+//内容改变时自动保存(1分钟一次)
+let timer: any = null
+const mdChange = (value: string) => {
+  currentNoteData.value.content_md = value
+  if (timer) clearTimeout(timer)
+  timer = setTimeout(() => {
+    notePush(1, false)
+    console.log('change')
+  }, 60000)
+}
+
+//删除文章是否显示
+const isShowDeleteNoteModal = ref()
+
+//删除文章
+const deleteNote = async () => {
+  await handleNoteAction({method: 'delete', body: {noteId: currentNote.value.id}})
+  isShowDeleteNoteModal.value = false
+}
 
 </script>
 
@@ -428,6 +560,10 @@ watch(selectedNotebookItem, async (item) => {
 }
 
 .note-writer-list {
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+
   border-right: 1px #E8E8E8 solid;
   height: 100%;
 
@@ -446,6 +582,11 @@ watch(selectedNotebookItem, async (item) => {
   }
 
   .note-create {
+    overflow: auto;
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+
     .active {
       background-color: #E6E6E6;
       border-left: 3px #EC7259 solid;
@@ -461,6 +602,7 @@ watch(selectedNotebookItem, async (item) => {
       .text-icon {
         color: #BEBEBE;
         font-size: 25px;
+        flex-shrink: 0;
       }
 
       span {
@@ -471,16 +613,12 @@ watch(selectedNotebookItem, async (item) => {
         -o-text-overflow: ellipsis;
         text-overflow: ellipsis;
         white-space: nowrap;
-        flex: 1;
       }
     }
   }
 
 }
 
-.edit-note {
-
-}
 </style>
 
 <style>
@@ -525,6 +663,10 @@ watch(selectedNotebookItem, async (item) => {
 
 .edit-note .bytemd-toolbar-right [bytemd-tippy-path='5'] {
   display: none;
+}
+
+.edit-note .bytemd-toolbar-right [bytemd-tippy-path='6'] {
+  padding: 5px;
 }
 
 .edit-note .bytemd-body img {

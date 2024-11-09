@@ -18,5 +18,17 @@ export const genTitle = () => {
     //-2指从倒数第二位开始获取，这样就不会在前面多一个0了
     let month = ('0' + (curDate.getMonth() + 1)).slice(-2);
     let day = ('0' + curDate.getDate()).slice(-2);
-    return `${year}-${month}-${day}`;
+    let hour = ('0' + curDate.getHours()).slice(-2);
+    let minute = ('0' + curDate.getMinutes()).slice(-2);
+    let second = ('0' + curDate.getSeconds()).slice(-2);
+    return `${year}-${month}-${day}-${hour}:${minute}:${second}`;
+}
+
+
+export const debounce = (func: Function, delay: number) => {
+    let timer: any = null
+    return function () {
+        if (timer) clearTimeout(timer)
+        timer = setTimeout(func.apply(null, arguments), delay)
+    }
 }

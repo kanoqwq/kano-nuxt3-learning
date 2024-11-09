@@ -46,7 +46,6 @@ export default defineEventHandler(async (event) => {
         if ((res as any).affectedRows <= 0) {
             return responseJSON(1, `创建文章失败`)
         }
-
         //关联文集表
         const [res1] = await connection.execute('insert into `notebook_notes` (`notebook_id`,`note_id`) value (?,?)', [
             body.notebookId, (res as any).insertId
@@ -54,8 +53,7 @@ export default defineEventHandler(async (event) => {
         if ((res1 as any).affectedRows <= 0) {
             return responseJSON(1, `关联文集失败`)
         }
-
-        return responseJSON(0, `创建文章成功`)
+        return responseJSON(0, `创建文章成功`, {uid})
     } catch (error: any) {
         setResponseStatus(event, 500)
         return responseJSON(1, '服务器错误', {body}, error.message)
