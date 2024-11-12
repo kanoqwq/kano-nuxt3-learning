@@ -6,12 +6,11 @@
  */
 
 import {defineEventHandler, readBody, setResponseStatus} from "h3";
-import {getDB} from "~/utils/db/mysql";
 import {responseJSON} from "~/utils/helper";
+import {Connection} from "~/utils/db/mysql";
 
 export default defineEventHandler(async (event) => {
-    const connection = await getDB().getConnection()
-
+    const connection = await Connection.getConnection()
     try {
         const [list] = await connection.query('select * from `notebooks`')
         return responseJSON(0, `ok`, list)
@@ -20,6 +19,7 @@ export default defineEventHandler(async (event) => {
         return responseJSON(1, '服务器错误', {}, error.message)
     } finally {
         //释放链接
-        connection.release()
+        connection.end()
+
     }
 })

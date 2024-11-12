@@ -7,7 +7,7 @@
  */
 import {defineEventHandler, readBody, setResponseStatus} from "h3";
 import Joi from "joi";
-import {getDB} from "~/utils/db/mysql";
+import {Connection} from "~/utils/db/mysql";
 import {SALT} from '~/server/private'
 import md5 from 'md5'
 import {responseJSON} from "~/utils/helper";
@@ -26,7 +26,7 @@ export default defineEventHandler(async (event) => {
 
     let password = md5(md5(body.password + SALT)) //md5加密
 
-    const connection = await getDB().getConnection()
+    const connection = await Connection.getConnection()
 
     try {
         //查询数据库
@@ -45,6 +45,6 @@ export default defineEventHandler(async (event) => {
         return responseJSON(1, '服务器错误', {}, error.message)
     } finally {
         //释放链接
-        connection.release()
+        connection.end()
     }
 })

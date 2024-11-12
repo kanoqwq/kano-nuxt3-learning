@@ -6,7 +6,7 @@
  */
 
 import {defineEventHandler, setResponseStatus} from "h3";
-import {getDB} from "~/utils/db/mysql";
+import {Connection} from "~/utils/db/mysql";
 import path from 'node:path'
 
 import {genTitle, getLoginUid, responseJSON} from "~/utils/helper";
@@ -29,7 +29,7 @@ export default defineEventHandler(async (event) => {
             return responseJSON(1, '上传的不是图片')
         }
         //图片名称
-        const fileName = Date.now() + '-' + body[0].filename
+        const fileName = Date.now() + '-' +(body[0].filename?.replaceAll(' ',''))
         //图片数据
         let buffer = body[0].data
 
@@ -56,7 +56,8 @@ export default defineEventHandler(async (event) => {
             if (res.code == 0 && res.data) {
                 const avatarUrl = `https://${res.data.Location}`
 
-                const connection = await getDB().getConnection()
+                const connection = await Connection.getConnection()
+
                 try {
                     //插入users
                     const [res] = await connection.execute('update `users` set `avatar` =? where `id`=?', [

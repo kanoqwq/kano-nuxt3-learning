@@ -7,10 +7,25 @@ export default defineNuxtConfig({
         // Options
     },
     vite: {
+        //去除掉console和debugger（生产环境）
+        esbuild: {
+            drop: process.env.NODE_ENV == "production" ? ['console', 'debugger'] : []
+        },
         ssr: {
             //作为外部模块，不打包在一起
             noExternal: ['ant-design-vue'],
+        },
+        build: {
+            minify: 'esbuild',
+            chunkSizeWarningLimit: 500,
+            cssCodeSplit: true,
+
         }
+    },
+
+    build: {
+        //生产环境下Joi bug解决
+        transpile: ['@hapi','@sideway'],
     },
     runtimeConfig: {
         // 使用 useRuntimeConfig 可以获取这些数据
@@ -19,6 +34,13 @@ export default defineNuxtConfig({
         region: process.env["BUCKET_REGION"],
         secretId: process.env["SECRET_ID"],
         secretKey: process.env["SECRET_KEY"],
+        nodeEnv: process.env["NODE_ENV"],
+        mysqlHost: process.env["MYSQL_HOST"],
+        mysqlUser: process.env["MYSQL_USER"],
+        mysqlPassword: process.env["MYSQL_PASSWORD"],
+        mysqlPort: process.env["MYSQL_PORT"],
+        mysqlDatabase: process.env["MYSQL_DATABASE"],
+
         public: {
             //公开数据
             api: ''

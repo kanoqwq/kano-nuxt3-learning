@@ -242,3 +242,84 @@ async onResponseError({request, response, options}) {
 }
 //...
 ```
+
+---
+
+### 坑6：mysql2 ‘too many connection’ 错误
+
+由于项目需要使用到数据库，于是使用 yarn 安装了 'node-msql2'，并创建了一个连接池：
+
+```javascript
+// utils/mysql.ts
+import mysql from "mysql2/promise";
+export const getDB = ()=>{
+    //链接池
+    return mysql.createPool({
+        host: -DB,
+        user: -DB,
+        password: -DB,
+        port: -DB,
+        database: -DB,
+        waitForConnections: true,
+        queueLimit: 0
+    });
+}
+```
+
+**但是在NuxtAPP中使用时，会出现 `too many connection` 报错，程序崩溃**
+
+**以下是可能造成该问题的原因：**
+
+> Nuxt的热重载机制可能会重复创建单例
+
+**解决方法：**
+
+> 创建一个静态工具类，只创建一个实例即可
+
+问题详见：[node-mysql2:Issues-GitHub](https://github.com/sidorares/node-mysql2/issues/2362)
+
+```javascript
+import mysql, { Pool, PoolConnection } from 'mysql2/promise';
+const { DB_HOST, DB_USER, DB_PASSWORD, DB_NAME } = process.env;
+
+export class Connection {
+  private static instance: Connection;
+  private pool: Pool;
+
+  private constructor() {
+    console.log('Creating MySQLPoolSingleton instance'); // Add this line
+    // Set up your MySQL connection pool parameters
+    const poolConfig: mysql.PoolOptions = {
+      host: DB_HOST,
+    user: DB_USER,
+    password: DB_PASSWORD,
+    database: DB_NAME,
+    waitForConnections: true,
+    connectionLimit: 10,
+    idleTimeout: 5000,
+    queueLimit: 0,
+    };
+
+    this.pool = mysql.createPool(poolConfig);
+  }
+
+  public static getInstance(): Connection {
+    if (!Connection.instance) {
+      Connection.instance = new Connection();
+    }
+
+    return Connection.instance;
+  }
+
+  public async getConnection(): Promise<PoolConnection> {
+    return this.pool.getConnection();
+  }
+
+  // You can add other methods or configurations as needed
+
+  public async closePool(): Promise<void> {
+    await this.pool.end();
+  }
+}
+```
+

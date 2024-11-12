@@ -23,3 +23,6 @@ export const notePagParamsSchema = Joi.object({
 export const noteWithNotebookIdPagParamsSchema = notePagParamsSchema.append({
     notebookId: Joi.number().required(),
 })
+export const userInfoPutSchema = notePagParamsSchema.append({
+    nickname: Joi.string().required(),
+})

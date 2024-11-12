@@ -27,7 +27,7 @@ export default defineEventHandler(async (event) => {
             return responseJSON(1, '上传的不是图片')
         }
         //图片名称
-        const fileName = Date.now() + '-' + body[0].filename
+        const fileName = Date.now() + '-' + (body[0].filename?.replaceAll(' ', ''))
         //图片路径
         const filePath = path.join(`./public/uploads/${(new Date()).getFullYear()}/`, fileName)
         //图片数据

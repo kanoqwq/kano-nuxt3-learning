@@ -6,7 +6,7 @@
  */
 
 import {defineEventHandler, readBody, setResponseStatus} from "h3";
-import {getDB} from "~/utils/db/mysql";
+import {Connection} from "~/utils/db/mysql";
 import {getLoginUid, responseJSON} from "~/utils/helper";
 import {notebookDeleteSchema} from "../../../schema/server/notebook";
 
@@ -25,7 +25,7 @@ export default defineEventHandler(async (event) => {
         return responseJSON(1, '参数错误', {})
     }
 
-    const connection = await getDB().getConnection()
+    const connection = await Connection.getConnection()
 
     try {
         const [res] = await connection.execute('delete from `notebooks` where `id`=? and `uid`=? ', [body.id, uid])
@@ -38,6 +38,7 @@ export default defineEventHandler(async (event) => {
         return responseJSON(1, '服务器错误', {}, error.message)
     } finally {
         //释放链接
-        connection.release()
+        connection.end()
+
     }
 })

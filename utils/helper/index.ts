@@ -25,10 +25,28 @@ export const genTitle = () => {
 }
 
 
-export const debounce = (func: Function, delay: number) => {
+export const kanoDebounce = (func: Function, delay: number) => {
     let timer: any = null
     return function () {
         if (timer) clearTimeout(timer)
         timer = setTimeout(func.apply(null, arguments), delay)
+    }
+}
+
+export const parseSubTitle = (str: string) => {
+    return str.replace(/!\[.*?\]\(.*?\)/g, '')         // 去除图片
+        .replace(/\[.*?\]\(.*?\)/g, '')          // 去除链接
+        .replace(/[#>*_`~\-+]+/g, '')            // 去除标题、列表项、粗体、斜体、代码块等符号
+        .replace(/(\r\n|\n|\r)/g, ' ')           // 替换换行符为空格
+        .replace(/\s+/g, ' ')                    // 多空格替换为单空格
+        .trim();                                 // 去除首尾空格.substring(0,100)
+}
+export const parseCover = (str: string) => {
+    // 正则匹配 Markdown 图片格式 `![alt text](image_url)`
+    const imageMatch = str.match(/!\[.*?\]\((.*?)\)/);
+    if (imageMatch) {
+        return imageMatch[1];
+    } else {
+        return null
     }
 }

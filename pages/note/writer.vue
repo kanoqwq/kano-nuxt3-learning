@@ -1,10 +1,14 @@
 <template>
-  <a-row style="height: 100vh">
+  <a-row style="height: 100vh" :wrap="false">
     <!--文集列表-->
-    <a-col :span="4">
+    <a-col flex="none" style="width: 200px;">
       <div class="notebook">
         <div class="notebook-top">
-          <a-button @click="" class="go-btn" type="primary" ghost shape="round">回首页</a-button>
+          <div class="user">
+            <img class="user-avatar" :src="userInfo?.avatar">
+            <span class="user-name">{{ userInfo?.nickname }}</span>
+          </div>
+          <a-button @click="navigateTo('/')" class="go-btn" type="primary" ghost shape="round">回首页</a-button>
           <div @click="showModal" class="add-notebook">
             <icon name="mdi:plus-thick"></icon>
             新建文集
@@ -54,7 +58,7 @@
         </div>
       </div>
     </a-col>
-    <a-col :span="5" class="note-writer-list">
+    <a-col :span="4" class="note-writer-list">
       <!--文章列表-->
       <div class="create" @click="createNote">
         <icon name="ep:circle-plus-filled" style="margin-right: 5px"></icon>
@@ -65,7 +69,7 @@
           <div
               class="note-create-item "
               :class="currentNoteIndex === noteIndex ? 'active':''"
-              @click="changeCurrentNoteIndex(noteIndex)"
+              @click="()=>{(noteIndex !== currentNoteIndex) && changeCurrentNoteIndex(noteIndex)}"
               v-for="(note,noteIndex) in notesData"
               :key="note.id"
           >
@@ -77,12 +81,6 @@
               </a>
               <template #overlay>
                 <a-menu>
-                  <a-menu-item>
-                    <a-row type="flex" justify="center" align="middle">
-                      <icon name="mdi:share" style="margin-right: 5px"></icon>
-                      直接发布
-                    </a-row>
-                  </a-menu-item>
                   <a-menu-item>
                     <a-row type="flex" justify="center" align="middle">
                       <icon name="ep:folder-opened" style="margin-right: 5px"></icon>
@@ -102,25 +100,24 @@
         </template>
       </div>
     </a-col>
-    <a-col :span="15">
-      <a-spin tip="Loading..." :spinning="noteLoading">
+    <a-col flex="auto">
+      <a-spin :tip="loadingText.length ? loadingText:'Loading...'" :spinning="noteLoading">
         <!--编辑-->
         <div class="edit-note">
           <div style="height: 80px;line-height: 80px">
             <a-input style="font-size: 30px" :bordered="false" v-model:value="currentNoteData.title"
-                     @change="handleInput"></a-input>
+                     @focus="handleInput"></a-input>
           </div>
           <Editor
               ref="editor"
               :plugins="plugins"
-              v-model:value="currentNoteData.content_md"
+              :value="currentNoteData.content_md"
               @change="mdChange"
               :uploadImages="handleUploadImages"
           />
         </div>
       </a-spin>
     </a-col>
-
   </a-row>
   <!--修改文集弹框-->
   <a-modal
@@ -145,7 +142,6 @@
       <p style="margin-top: 30px">确认删除文集《{{ selectedNotebookItem.name }}》?</p>
     </div>
   </a-modal>
-
   <!--删除文章弹框-->
   <a-modal
       v-model:open="isShowDeleteNoteModal"
@@ -169,25 +165,72 @@ import highlight from '@bytemd/plugin-highlight'
 //@ts-ignore
 import {Editor} from "@bytemd/vue-next";
 import {imageCosFetch, imageFetch, notebookFetch, noteFetch, notesFetch} from "~/composables/useHTTPFetch";
-import {debounce} from '~/utils/helper/index'
+import {kanoDebounce} from '~/utils/helper/index'
+import {useUserInfo} from "~/composables/state";
+import {debounce} from "lodash-es";
+import {fa} from "cronstrue/dist/i18n/locales/fa";
 
-const plugins = [
+const plugins = ref([
   gfm(),
-  highlight(),
-  {
-    actions: [{
-      title: '立即发布',
-      icon: '<span>立即发布</span>',
-      position: "right",
-      handler: {
-        type: 'action',
-        click(ctx: any) {
-          notePush()
-        }
-      }
-    }]
+  highlight()
+])
+
+//用于首次编辑提示
+let isFirstChangeEditMode = true
+
+//
+const changeState = () => {
+  let text = ''
+  switch (currentNoteData.value.state) {
+    case 1:
+      text = '立即发布';
+      break;
+    case 2:
+      text = '已发布';
+      break;
+    case 3:
+      text = '发布更新';
+      break;
+    default:
+      break;
   }
-]
+  plugins.value = [
+    gfm(),
+    highlight(),
+    {
+      actions: [{
+        title: text,
+        icon: `<span>${text}</span>`,
+        position: "right",
+        handler: {
+          type: 'action',
+          click(ctx: any) {
+            notePush(2)
+          }
+        }
+      }]
+    }
+  ]
+}
+
+
+//加载提示的字符
+const loadingText = ref('')
+
+//用户信息
+const userInfo = useUserInfo()
+
+//窗口变更后保存
+onMounted(() => {
+  window.onblur = kanoDebounce(() => {
+    message.info('自动保存中..', 1)
+    return notePush.bind(null, currentNoteData.value.state, false)
+  }, 1000)
+})
+
+onBeforeUnmount(() => {
+  window.onblur = null
+})
 
 
 const handleUploadImages = async (file: FileList) => {
@@ -208,7 +251,7 @@ const handleUploadImages = async (file: FileList) => {
     message.success('上传图片成功！', 1)
   }
   console.log(data.value)
-  return [{url: data.value.data.imgUrl}]
+  return [{url: data.value.data.imgUrl, title: data.value.data.fileName}]
 }
 
 /**
@@ -363,9 +406,10 @@ const currentNote = computed(() => notesData.value[currentNoteIndex.value])
 //当前选中文章的完整数据
 const currentNoteData = ref<any>({})
 
-//改变noteindex，获取文章内容
+//noteindex变动，获取文章内容(详细内容)
 let loadDebounce: any = null
-const changeCurrentNoteIndex = async (index: number) => {
+const changeCurrentNoteIndex = debounce(async (index: number) => {
+  isFirstChangeEditMode = true
   noteLoading.value = true
   currentNoteIndex.value = index
   currentNoteData.value = {content_md: ''}
@@ -380,11 +424,14 @@ const changeCurrentNoteIndex = async (index: number) => {
       currentNoteData.value = data.value.data
     }
   }
+  changeState()
   clearTimeout(loadDebounce)
   loadDebounce = setTimeout(() => {
     noteLoading.value = false
+    loadingText.value = ''
   }, 300)
-}
+}, 100)
+
 
 //获取文集下面的文章(不含md内容)（暂时用不着分页）
 const notesData = ref<any>([])
@@ -433,7 +480,7 @@ const handleNoteAction = (options: { method: string, body?: any, params?: any },
       method: options.method,
       body: options.body || {},
       params: options.params || {},
-      server: false,
+      server: true,
     }).then(({data}: any) => {
       checkDataAndRefresh(data, () => getNotes(true, currentNotebookId.value), needMsg)
     }).finally(() => {
@@ -451,32 +498,43 @@ const createNote = async () => {
 }
 
 //发布文章
-const notePush = async (state?: number, needMsg?: boolean = true) => {
-  if (currentNoteData.value.title && currentNoteData.value.content_md) {
+const notePush = async (state: number = 1, needMsg: boolean = true) => {
+  if (currentNoteData.value.title && currentNoteData.value.content_md && !noteLoading.value) {
+    isFirstChangeEditMode = true
+    if (state) currentNoteData.value.state = state
     await handleNoteAction({
       method: 'put', body: {
         noteId: currentNoteData.value.id,
         title: currentNoteData.value.title,
         content_md: currentNoteData.value.content_md,
-        state: state ? state : currentNoteData.value.state,
+        state: state ? state : currentNoteData.value.state
       }
     }, needMsg)
+    noteLoading.value = false
+    changeState()
   }
 }
 
-//标题改变时自动保存
-const handleInput = debounce(() => notePush.bind(null, 1, false), 1000)
 
-//内容改变时自动保存(1分钟一次)
-let timer: any = null
+//内容改变时更新md编辑器内容
+const changeToEditMode = kanoDebounce(() => {
+  if (!noteLoading.value) {
+    if (isFirstChangeEditMode && currentNoteData.value.state !== 3) {
+      message.warn('您已进入编辑模式，须点击发布后才能正常显示文章')
+    }
+    isFirstChangeEditMode = false
+    if (currentNoteData.value.state == 3) return
+    return notePush.bind(null, 3, false)
+  }
+}, 1000)
 const mdChange = (value: string) => {
+  changeToEditMode()
   currentNoteData.value.content_md = value
-  if (timer) clearTimeout(timer)
-  timer = setTimeout(() => {
-    notePush(1, false)
-    console.log('change')
-  }, 60000)
 }
+
+//标题改变时自动保存
+const handleInput = changeToEditMode
+
 
 //删除文章是否显示
 const isShowDeleteNoteModal = ref()
@@ -486,7 +544,6 @@ const deleteNote = async () => {
   await handleNoteAction({method: 'delete', body: {noteId: currentNote.value.id}})
   isShowDeleteNoteModal.value = false
 }
-
 </script>
 
 <style lang="scss" scoped>
@@ -496,6 +553,31 @@ const deleteNote = async () => {
 
   .notebook-top {
     padding: 20px;
+
+    .user {
+      display: flex;
+      align-items: center;
+      margin-bottom: 20px;
+
+      .user-avatar {
+        width: 50px;
+        height: 50px;
+        border-radius: 50%;
+      }
+
+      .user-name {
+        flex: 1;
+        overflow: hidden;
+        margin: 20px 0;
+        padding-left: 20px;
+        font-size: 16px;
+        color: #fff;
+        white-space: nowrap;
+        word-break: break-all;
+        word-wrap: break-word;
+        text-overflow: ellipsis;
+      }
+    }
 
     .go-btn {
       width: 100%;
@@ -557,13 +639,14 @@ const deleteNote = async () => {
 
     }
   }
+
 }
 
 .note-writer-list {
   overflow: hidden;
   display: flex;
   flex-direction: column;
-
+  min-width: 200px;
   border-right: 1px #E8E8E8 solid;
   height: 100%;
 

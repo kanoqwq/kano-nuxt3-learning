@@ -37,15 +37,16 @@ export const useHTTPFetch = (url: string, opt: FetchOptions, auth = false) => {
         onRequestError({request, options, error}) {
             console.error(error);
         },
-        onResponse({request, response, options}) {
+        async onResponse({request, response, options}) {
             // 将在 call 和 parsing body 之后调用
             // 处理响应数据
             // localStorage.setItem('token', response._data.token)
             if (!response._data || response._data.code !== 0) {
                 //错误
-                message.error(response._data.message)
+                await nuxtApp.runWithContext(() => {
+                    message.warn(response._data.message)
+                })
             }
-
         },
         async onResponseError({request, response, options}) {
             //fetch 发生时将被调用
@@ -54,7 +55,10 @@ export const useHTTPFetch = (url: string, opt: FetchOptions, auth = false) => {
                 // 这里直接navigatge并不会跳转，需要使用callWithNuxt方法
                 //callWithNuxt（），当你在 middleware 中使用 await 时，这是必需的
                 //但callWithNuxt方法已经在新版本的nuxt中改为更好用的runWithContext方法
+
                 await nuxtApp.runWithContext(() => {
+                    //清除一下本地cookie
+                    accessToken.value = ''
                     navigateTo('/sign_in', {
                         replace: true, redirectCode: 401
                     })
@@ -67,10 +71,6 @@ export const useHTTPFetch = (url: string, opt: FetchOptions, auth = false) => {
 }
 
 
-//定义接口
-export const userInfoFetch = (opt: FetchOptions) => {
-    return useHTTPFetch('/api/user', opt)
-}
 
 //注册
 export const registerFetch = (opt: FetchOptions) => {
@@ -98,7 +98,25 @@ export const noteFetch = (opt: FetchOptions) => {
 export const imageFetch = (opt: FetchOptions) => {
     return useHTTPFetch('/api/note/image', opt)
 }
+//头像上传
+export const avatarFetch = (opt: FetchOptions) => {
+    return useHTTPFetch('/api/upload-avatar', opt)
+}
+
 //图片上传接口-cos(管理员)
 export const imageCosFetch = (opt: FetchOptions) => {
     return useHTTPFetch('/api/note/image-cos', opt)
+}
+
+export const homeNotesFetch = (opt: FetchOptions) => {
+    return useHTTPFetch('/api/notes', opt)
+}
+
+export const noteDetailFetch = (opt: FetchOptions) => {
+    return useHTTPFetch('/api/note', opt)
+}
+
+//获取已登录用户信息
+export const userInfoFetch = (opt: FetchOptions) => {
+    return useHTTPFetch('/api/userinfo', opt)
 }

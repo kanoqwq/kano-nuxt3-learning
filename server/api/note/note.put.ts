@@ -9,7 +9,7 @@
  */
 
 import {defineEventHandler, readBody, setResponseStatus} from "h3";
-import {getDB} from "~/utils/db/mysql";
+import {Connection} from "~/utils/db/mysql";
 
 import {genTitle, getLoginUid, responseJSON} from "~/utils/helper";
 import {notePutSchema} from "../../../schema/server/note";
@@ -33,7 +33,7 @@ export default defineEventHandler(async (event) => {
         return responseJSON(1, '参数错误')
     }
 
-    const connection = await getDB().getConnection()
+    const connection = await Connection.getConnection()
 
     try {
         //修改文章
@@ -53,6 +53,7 @@ export default defineEventHandler(async (event) => {
         return responseJSON(1, '服务器错误', {body}, error.message)
     } finally {
         //释放链接
-        connection.release()
+        connection.end()
+
     }
 })

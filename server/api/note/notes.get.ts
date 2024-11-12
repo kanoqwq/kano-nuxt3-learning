@@ -6,7 +6,7 @@
  */
 
 import {defineEventHandler, getQuery, setResponseStatus} from "h3";
-import {getDB} from "~/utils/db/mysql";
+import {Connection} from "~/utils/db/mysql";
 import {getLoginUid, responseJSON} from "~/utils/helper";
 import {noteWithNotebookIdPagParamsSchema} from "../../../schema/server/note";
 
@@ -27,8 +27,7 @@ export default defineEventHandler(async (event) => {
         return responseJSON(1, '传入参数错误', {}, e)
     }
 
-
-    const connection = await getDB().getConnection()
+    const connection = await Connection.getConnection()
 
     try {
         //查询文章和文集的关联表
@@ -50,19 +49,15 @@ export default defineEventHandler(async (event) => {
 
         const offset = (Number((params.pageNum as any)) - 1) * Number((params.pageSize as any))
         //BUG:mysql2 使用limit需要传入string类型的数字
-
         //BUG：in语句的括号内没法传入数组
         let strGen = noteIdList.map(() => '?').join()
         const sqlQuery = 'select id,title from `notes` where `uid`=? and `id` in (' + strGen + ') order by `id` desc  limit ? offset ?'
-        console.log(sqlQuery)
         const [list] = await connection.execute(sqlQuery, [
             uid,
             ...noteIdList,
             (params.pageSize as any).toString(),
             offset.toString()
         ])
-
-        console.log(uid,list,noteIdList)
         return responseJSON(0, `获取文章列表成功`, {
             pageNum: params.pageNum,
             total: (list as Array<any>).length,

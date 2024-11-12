@@ -3,8 +3,8 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "build": "nuxt build",
-    "dev": "nuxt dev",
+    "build": "nuxt build --dotenv .env.production",
+    "dev": "nuxt dev --dotenv .env.local",
     "generate": "nuxt generate",
     "preview": "nuxt preview",
     "postinstall": "nuxt prepare"
@@ -14,6 +14,7 @@
     "@bytemd/plugin-gfm": "^1.21.0",
     "@bytemd/plugin-highlight": "^1.21.0",
     "@bytemd/vue-next": "^1.21.0",
+    "@hapi/hoek": "^11.0.6",
     "@nuxt/icon": "^1.6.1",
     "@pinia/nuxt": "^0.6.1",
     "@types/jsonwebtoken": "^9.0.7",
@@ -23,6 +24,7 @@
     "joi": "^17.13.3",
     "jsonwebtoken": "^9.0.2",
     "md5": "^2.3.0",
+    "moment": "^2.30.1",
     "mysql2": "^3.11.3",
     "nuxt": "^3.13.2",
     "pinia": "^2.2.5",

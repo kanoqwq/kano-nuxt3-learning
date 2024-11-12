@@ -6,7 +6,7 @@
  */
 
 import {defineEventHandler, readBody, setResponseStatus} from "h3";
-import {getDB} from "~/utils/db/mysql";
+import {Connection} from "~/utils/db/mysql";
 import {getLoginUid, responseJSON} from "~/utils/helper";
 
 export default defineEventHandler(async (event) => {
@@ -18,7 +18,7 @@ export default defineEventHandler(async (event) => {
         return responseJSON(1, '请先登录')
     }
 
-    const connection = await getDB().getConnection()
+    const connection = await Connection.getConnection()
 
     try {
         const [list] = await connection.execute('select * from `notebooks` where uid =? order by `id` desc', [uid])
@@ -28,6 +28,7 @@ export default defineEventHandler(async (event) => {
         return responseJSON(1, '服务器错误', {}, error.message)
     } finally {
         //释放链接
-        connection.release()
+        connection.end()
+
     }
 })
