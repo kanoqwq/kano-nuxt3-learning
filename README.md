@@ -323,3 +323,35 @@ export class Connection {
 }
 ```
 
+### 坑7 Joi在生产版本中报错
+
+错误如下：
+
+```bash
+[nuxt] [request error] [unhandled] [500] Cannot find module '/mnt/d/Git/kano-nuxt3-learning/.output/server/node_modules/@hapi/hoek/lib/assert' imported from /mnt/d/Git/kano-nuxt3-learning/.output/server/chunks/routes/api/notes.get.mjs
+Did you mean to import "@hapi/hoek/lib/assert.js"?
+```
+
+解决方案：
+
+[I am using joi validator on the server, but it works in production mode but in development mode it works correctly · nuxt/nuxt · Discussion #23065](https://github.com/nuxt/nuxt/discussions/23065)
+
+**在nuxt.config.ts添加如下代码：**
+
+```javascript
+export default defineNuxtConfig({
+    ...
+    build: {
+        //生产环境下Joi bug解决
+        transpile: ['@hapi','@sideway'],
+    },
+    ...
+})
+```
+
+### **字段解释：**[`transpile`](https://nuxt.com.cn/docs/api/nuxt-config#transpile)
+
+> If you want to transpile specific dependencies with Babel, you can add them here. Each item in transpile can be a package name, a function, a string or regex object matching the dependency's file name.
+>
+> 如果你想用 Babel 转译特定的依赖项，你可以在这里添加它们。transpile 中的每个项目都可以是与依赖项的文件名匹配的包名称、函数、字符串或正则表达式对象。
+
